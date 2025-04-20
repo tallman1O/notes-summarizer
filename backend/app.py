@@ -10,46 +10,60 @@ load_dotenv()
 # Configure API key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# Initialize Flask app
 app = Flask(__name__)
 
-
-@app.route('/summarize', methods=['POST'])
-def summarize_meeting():
-    # Get raw meeting notes from request
+@app.route('/generate_notes', methods=['POST'])
+def generate_notes():
     data = request.json
-    if not data or 'meetingNotes' not in data:
-        return jsonify({"error": "No meeting notes provided"}), 400
 
-    raw_notes = data['meetingNotes']
+    if not data or 'lectureNotes' not in data:
+        return jsonify({"error": "No lecture notes provided"}), 400
+
+    notes = data['lectureNotes']
+    subject = data.get('subject', 'General')
 
     try:
-        # Configure the model
         model = genai.GenerativeModel('gemini-2.0-flash')
 
-        # Create prompt for summarization
-        prompt = """
-        Please summarize the following meeting notes into a structured, concise format.
-        Include key decisions, action items, and important discussion points:
+        prompt = f"""
+        You are an AI assistant helping students generate concise and clear study notes.
 
-        {}
-        """.format(raw_notes)
+        Subject: {subject}
 
-        # Generate response from Gemini
+        Based on the following lecture notes, do two things:
+        1. Generate well-structured and summarized study notes.
+        2. Create 3 to 5 relevant quiz questions that help test understanding.
+
+        Lecture Notes:
+        {notes}
+        """
+
         response = model.generate_content(prompt)
 
-        # Return the summarized text
-        return jsonify({
-            "success": True,
-            "summary": response.text
-        })
+        if hasattr(response, 'text'):
+            # Attempt to split the notes and quiz questions
+            if "Quiz Questions:" in response.text:
+                parts = response.text.split("Quiz Questions:")
+                study_notes = parts[0].strip()
+                quiz = parts[1].strip()
+            else:
+                study_notes = response.text.strip()
+                quiz = "No quiz questions found."
+
+            return jsonify({
+                "success": True,
+                "notes": study_notes,
+                "quiz": quiz
+            })
+
+        else:
+            return jsonify({"success": False, "error": "No text returned from model."})
 
     except Exception as e:
         return jsonify({
             "success": False,
             "error": str(e)
         }), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

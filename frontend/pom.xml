@@ -34,7 +34,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.meetingsummarizer.MeetingSummarizerApp</mainClass>
+                            <mainClass>com.studynotes.StudyNotesApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
